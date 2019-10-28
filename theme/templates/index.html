@@ -8,11 +8,11 @@
 <h3 class="article-title"><strong><a href="/{{ article.slug }}.html"> 📝 {{ article.title }}</a></strong></h3>
 <label class="article-timestamp">Posted on <strong>{{ article.locale_date }}</strong></label>
 <p class="article-summary"> {{ article.summary|striptags }}</p>
- <p class="jump-link"><a href="/{{ article.slug }}.html">Read more...</a></p>
+<p class="jump-link"><a href="/{{ article.slug }}.html">Read more...</a></p>
 <div style="clear: both;">&nbsp;</div>
 {% endfor %}
 {% else %}
-        <div id="content">
-        </div>
+<div id="content">
+</div>
 {% endif %}
 {% endblock %}
