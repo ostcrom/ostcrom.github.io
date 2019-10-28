@@ -2,10 +2,12 @@ import os
 import boto3
 from utility import scandir
 from pystackpath import Stackpath
+import pelican
 
 SECRETS_FILE_OS = os.path.abspath('.os_secrets')
 SECRETS_FILE_API = os.path.abspath('.api_secrets')
 PUBLIC_DIR = os.path.abspath('output')
+PELICAN_CONF = os.path.abspath('pelicanconf.py')
 
 
 ##Function to recursively upload files in a given dir tree.
@@ -53,6 +55,14 @@ def load_api_settings():
 if __name__ == '__main__':
 
     KEY, SECRET, BUCKET = load_os_settings()
+
+    pelican_settings = pelican.read_settings(PELICAN_CONF,override={
+            'THEME_STATIC_PATHS': ['theme']
+})
+
+
+    pelican_build = pelican.Pelican(pelican_settings)
+    ##pelican_build.run()
 
     session = boto3.session.Session()
     public_dir_tree = scandir(PUBLIC_DIR)
