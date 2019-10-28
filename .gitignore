@@ -128,3 +128,6 @@ dmypy.json
 ##File containing API keys.
 .os_secrets
 .api_secrets
+
+##Don't upload our final build...
+output/
