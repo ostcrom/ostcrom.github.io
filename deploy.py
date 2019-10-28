@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 
     pelican_build = pelican.Pelican(pelican_settings)
-    ##pelican_build.run()
+    pelican_build.run()
 
     session = boto3.session.Session()
     public_dir_tree = scandir(PUBLIC_DIR)

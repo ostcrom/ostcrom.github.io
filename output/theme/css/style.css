@@ -7,7 +7,7 @@ body {
 	color: #fff;
 	margin: 0 0 100px;
 	background: #F5D04C;
-	background-image: url("../images/tux-apple.png");
+	background-image: url("/theme/images/tux-apple.png");
 	background-repeat: no-repeat;
 	background-position: right bottom;
 	background-size: 30%;
@@ -24,9 +24,36 @@ a {
 *:focus {outline: none;}
 .toggle {cursor: pointer;}
 
-h3 {
-	margin: 0;
-	padding: 0;
+.category-title {
+	text-decoration: underline;
+	text-align: center;
+}
+
+.article-title {
+	margin-bottom: 2px;
+}
+
+.article-timestamp {
+	font-size: 10px;
+}
+
+.jump-link {
+	margin: 1px;
+	font-size: 8px;
+}
+
+.article-summary {
+	font-size: 12px;
+	margin: 5px 0 0 5px;
+}
+
+.meta {
+	margin: 5px;
+	font-size: 10px;
+}
+
+.title {
+	margin-bottom: 0px
 }
 
 #main-title {
@@ -85,12 +112,10 @@ h3 {
 	float: left;
 	color: #444;
 	height: auto;
-	padding: 20px;
+	padding: 0px 10px 10px 10px;
 	font-size: 15px;
 	background: #fffff0;
-	margin-top: 40px;
 	margin-left: 10%;
-	line-height: 19px;
 	border: 1px solid #fff;
 }
 

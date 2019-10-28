@@ -9,9 +9,11 @@ SITEURL = ''
 PATH = 'content'
 
 TIMEZONE = 'America/Chicago'
+THEME = "theme"
 
 DEFAULT_LANG = 'en'
-
+DEFAULT_DATE_FORMAT = '%a %d %B %Y'
+DEFAULT_DATE = "fs"
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
 CATEGORY_FEED_ATOM = None
@@ -20,8 +22,9 @@ AUTHOR_FEED_ATOM = None
 AUTHOR_FEED_RSS = None
 
 # Blogroll
-LINKS = (('Pelican', 'http://getpelican.com/'),
-        )
+LINKS = (('home', '/index.html'),
+        ('about', '/pages/about.html'),
+        ('posts', '/categories.html'))
 
 # Social widget
 SOCIAL = (('You can add links in your config file', '#'),
