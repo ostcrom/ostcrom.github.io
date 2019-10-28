@@ -2,18 +2,17 @@
 {% block title %}home{% endblock %}
 
 {% block content %}
-<h3>Hypertext Links:</h3>
-<ul><br>
-  <li><a href="https://www.amazon.com/Artisan-Cheese-Making-Home-World-Class/dp/1607740087" target="_blank">Artisan Cheese Making at Home</a> - a complete guide to making cheese.</li><br>
-  <li><a href="https://www.2600.com/Magazine/" target="_blank">2600</a></li><br>
-  <li><a href="https://www.raspberrypi.org/" target="_blank">Raspberry Pi Project</a> -  A versatile, $35, credit card sized computer for desktop and server applications.</li><br>
-  <li><a href="https://www.adafruit.com/" target="_blank">Adafruit</a> -  A good place to buy a Raspberry Pi and other DIY electronic components.</li>
-</ul>
-<h3>Recommended Software:</h3>
-<ul>
-  <li><a href="http://xubuntu.org/" target="_blank">Xubuntu</a> - Easy to use, lightweight, GNU/Linux desktop OS.</li><br>
-  <li><a href="https://owncloud.org/" target="_blank">OwnCloud</a> - Self hosted file synchronization service with easy to use web interface and lots of productivity plugins.</li><br>
-<li><a href="https://www.subsonic.org" target="_blank">Subsonic</a> - Self hosted music streaming web app with an easy to use interface.</li><br>
-  <li><a href="https://keepass.info/" target="_blank">KeePass2</a> - Use to create, retrieve, and manage completely random passwords for all of your log ins.</li><br>
-</ul>
+{% if articles %}
+<h2 class="title">recent posts</h2>
+{% for article in articles[:4] %}
+<h3 class="article-title"><strong><a href="/{{ article.slug }}.html"> 📝 {{ article.title }}</a></strong></h3>
+<label class="article-timestamp">Posted on <strong>{{ article.locale_date }}</strong></label>
+<p class="article-summary"> {{ article.summary|striptags }}</p>
+ <p class="jump-link"><a href="/{{ article.slug }}.html">Read more...</a></p>
+<div style="clear: both;">&nbsp;</div>
+{% endfor %}
+{% else %}
+        <div id="content">
+        </div>
+{% endif %}
 {% endblock %}

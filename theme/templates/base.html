@@ -14,7 +14,7 @@
 			<h1 id="main-title"><a href="https://danielsteinke.com/">/home/dsteinke</a></h1>
 			<ul>
 			{% for name, link in LINKS %}
-			<li><a href="{{ link }}">{{ name }}</a></li>
+			<li><a href="{{ link }}">{{ name|lower }}</a></li>
 			{% endfor %}
 			</ul>
 		</nav>
@@ -25,8 +25,8 @@
 
 {% block content %}{% endblock %}
 	</div>
-	<div id="side" class="border">
-	</div>
+<!--	<div id="side" class="border">
+</div> -->
 	<div class="clear"></div>
 	<footer><p>Amor Vincit Omnia | © Dan Steinke</p></footer>
 

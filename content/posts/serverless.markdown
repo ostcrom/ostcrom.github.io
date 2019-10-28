@@ -1,6 +1,7 @@
 title: Notes on Creating a "Serverless" Static Web Page with Automated Deployment  
 slug: projects/serverless
 category: Projects
+status: draft
 
 
 This article is meant to serve as a broad overview for **Why** and **How** modern webpages have moved away from dynamically generated web pages, which were the cornerstone of the "Web 2.0" era. Deployments are trending back towards static web pages, even on websites that contain dynamic content. This method of serving web content relies on modern cloud infrastructure services likes content delivery networks, object storage and edge computing to scale for capacity in an incredibly cost efficient and effortless manner.
