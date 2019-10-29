@@ -5,13 +5,7 @@
  <div class="col-md-8">
   <h2 class="category-title">{{category.name|lower}}</h2>
   {% for article in articles %}
-   <h3 class="article-title"><strong><a href="/{{ article.slug }}.html"> 📝 {{ article.title }}</a></strong></h3>
-   <label class="article-timestamp">Posted on <strong>{{ article.locale_date }}</strong></label>
-   <p class="article-summary"> {{ article.summary|striptags }}</p>
-    <p class="jump-link"><a href="/{{ article.slug }}.html">Read more...</a></p>
-   <div style="clear: both;">&nbsp;</div>
-  {% else %}
-   No posts yet!
+   {% include "articlestub.html" %}
   {% endfor %}
  </div>
 </div>

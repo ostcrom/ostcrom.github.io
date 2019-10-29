@@ -1,0 +1,5 @@
+<h3 class="article-title"><strong><a href="/{{ article.slug }}.html"> 📝 {{ article.title }}</a></strong></h3>
+<p class="meta"><span class="date">Posted {{ article.locale_date }} </span><span>&nbsp; | Category : <a href="{{ SITEURL }}/{{ article.category.url }}">{{ article.category }}</a></span></p>
+<p class="article-summary"> {{ article.summary|striptags }}</p>
+<p class="jump-link"><a href="/{{ article.slug }}.html">Read more...</a></p>
+<div style="clear: both;">&nbsp;</div>
