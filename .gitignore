@@ -134,3 +134,7 @@ dmypy.json
 
 ##Don't upload our final build...
 output/
+
+##Vim tmp files
+*.swp
+*.swo
