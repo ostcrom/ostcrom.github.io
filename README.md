@@ -1,6 +1,4 @@
 # danielsteinke.com
  GitHub repo for my static home page.
 
-If you were me, you would generate and deploy this site using the following command:
-
-`python deploy.py`
+ Updates to my home page are published to the web by committing the content to this repo. A Heroku account watches this repo and runs deploy.py whenever there is a new push. 

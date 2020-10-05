@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ article.title|lower }}{% endblock %}
 {% block content %}
-						<h2 class="title"><a href="{{ article.url }}">{{ article.title }}</a></h2>
+						<h2 class="title"><a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a></h2>
 						<p class="meta"><span class="date">Posted {{ article.locale_date }} </span><span>&nbsp; | Category : <a href="{{ SITEURL }}/{{ article.category.url }}">{{ article.category }}</a></span></p>
 					{% if 'tags' in article.tags %}<p class="meta">Tags : {% for tag in article.tags %}
 <span><a href="{{ SITEURL }}/{{ tag.url }}">{{ tag }}</a> / </span>
