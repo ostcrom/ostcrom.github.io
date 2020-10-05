@@ -5,6 +5,4 @@ RUN pip install -r requirements.txt
 COPY theme/ .
 COPY content/ .
 COPY *.py ./
-COPY .os_secrets .
-COPY .api_secrets .
 CMD ["python", "deploy.py"]
