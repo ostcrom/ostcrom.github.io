@@ -28,7 +28,9 @@ def upload_site(s3_client, bucket, dir_tree):
 def purge_cache():
     client_id, api_secret, stack_id = load_api_settings()
     sp = Stackpath(client_id, api_secret)
-    response = sp.stacks().get(stack_id).purge([{"url": "https://danielsteinke.com/",}])
+    response = sp.stacks().get(stack_id).purge([{"url": "https://danielsteinke.com/",
+                                                "recursive": True,
+                                                "invalidateOnly": False,}])
 
     print(response)
 
