@@ -2,6 +2,7 @@ title: Recommended Software (2020)
 slug: posts/recommended-software-2020
 category: Recommendations
 summary: A few applications that I find worth using in 2020.
+date: 2020-10-11
 
 A few applications that I find worth using in 2020.
 

@@ -2,6 +2,7 @@ title: Hypertext Links
 slug: posts/hypertext-links
 category: Recommendations
 summary: A few links that I find worth clicking.
+date: 2019-09-30
 
 This list was originally created ~2015.
 

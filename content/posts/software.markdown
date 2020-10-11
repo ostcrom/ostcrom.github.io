@@ -2,6 +2,7 @@ title: Recommended Software
 slug: posts/recommended-software
 category: Recommendations
 summary: A few applications that I find worth using.
+date: 2019-09-30
 
 This list was originally created ~2015.
 
