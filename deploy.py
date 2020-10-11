@@ -2,14 +2,14 @@ import os
 import boto3
 from utility import scandir
 from pystackpath import Stackpath
+from os import environ as env
 import pelican
 
-SECRETS_FILE_OS = os.path.abspath('.os_secrets')
-SECRETS_FILE_API = os.path.abspath('.api_secrets')
 PUBLIC_DIR = os.path.abspath('output')
 PELICAN_CONF = os.path.abspath('pelicanconf.py')
 
-
+print(PUBLIC_DIR, PELICAN_CONF)
+print(env['test_var'])
 ##Function to recursively upload files in a given dir tree.
 def upload_site(s3_client, bucket, dir_tree):
     for node in dir_tree:
@@ -28,27 +28,27 @@ def upload_site(s3_client, bucket, dir_tree):
 def purge_cache():
     client_id, api_secret, stack_id = load_api_settings()
     sp = Stackpath(client_id, api_secret)
-    response = sp.stacks().get(stack_id).cdnsites().purge("https://danielsteinke.com/")
+    response = sp.stacks().get(stack_id).purge([{"url": "https://danielsteinke.com/",
+                                                "recursive": True,
+                                                "invalidateOnly": False,}])
 
     print(response)
 
 def load_os_settings():
     try:
-        OS_KEY, OS_SECRET, BUCKET = open(SECRETS_FILE_OS, "r").read().splitlines()
+        OS_KEY, OS_SECRET, BUCKET = env["ds_os_key"], env["ds_os_secret"], env["ds_os_bucket"]
         return (OS_KEY, OS_SECRET, BUCKET)
     except (IOError, ValueError) as e:
-        print("Unable to load secrets!")
-        print("The object storage key, object storage secret and bucket name should be placed in a file called \".os_secrets\" respectively listed on the first, second and third lines.")
+        print("Unable to OS load secrets!")
         print(e)
         exit(code=1)
 
 def load_api_settings():
     try:
-        API_KEY, API_SECRET, STACK_ID = open(SECRETS_FILE_API, "r").read().splitlines()
+        API_KEY, API_SECRET, STACK_ID = env["ds_api_key"], env["ds_api_secret"], env["ds_stack_id"]
         return (API_KEY, API_SECRET, STACK_ID)
     except (IOError, ValueError) as e:
-        print("Unable to load secrets!")
-        print("The API key, API secret, stack ID should be placed in a file called \".os_secrets\" respectively listed on the first, second and third lines.")
+        print("Unable to load SP API secrets!")
         print(e)
         exit(code=1)
 

@@ -129,5 +129,12 @@ dmypy.json
 .os_secrets
 .api_secrets
 
+##SSH Private Key for Github
+.jenkins_rsa
+
 ##Don't upload our final build...
 output/
+
+##Vim tmp files
+*.swp
+*.swo
