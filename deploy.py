@@ -9,7 +9,6 @@ PUBLIC_DIR = os.path.abspath('output')
 PELICAN_CONF = os.path.abspath('pelicanconf.py')
 
 print(PUBLIC_DIR, PELICAN_CONF)
-print(env['test_var'])
 ##Function to recursively upload files in a given dir tree.
 def upload_site(s3_client, bucket, dir_tree):
     for node in dir_tree:
