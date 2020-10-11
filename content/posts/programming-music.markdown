@@ -3,6 +3,7 @@ slug: posts/programming-music
 category: Recommendations
 summary: Collection of albums that I listen to when programming.
 date: 2019-10-01
+
 This is a list of music I enjoy listening to when programming or working on other computing projects. I find instrumentals and soundtracks to be least distracting. Not all inclusive, and in no particular order.
 
 ###[Matrix Reloaded OST](https://songwhip.com/album/various-artists/the-matrix-reloaded-the-album)
