@@ -2,7 +2,8 @@ title: Recommended Software (2020)
 slug: posts/recommended-software-2020
 category: Recommendations
 summary: A few applications that I find worth using in 2020.
-status: draft
+
+A few applications that I find worth using in 2020.
 
 [tmux](https://github.com/tmux/tmux/wiki) - \*Nix terminal multiplexer, allows you to easily multitask in a terminal by providing resizable terminal 'windows'.
 
