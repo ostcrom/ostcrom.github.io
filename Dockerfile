@@ -1,8 +1,7 @@
 FROM python:3.8
 WORKDIR /code
-COPY requirements.txt .
+RUN git clone https://github.com/ostcrom/danielsteinke.com
+WORKDIR danielsteinke.com
+VOLUME output
 RUN pip install -r requirements.txt
-COPY theme/ .
-COPY content/ .
-COPY *.py ./
-CMD ["python", "deploy.py"]
+ENTRYPOINT ["python", "deploy.py"]

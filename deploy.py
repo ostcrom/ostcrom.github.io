@@ -4,11 +4,14 @@ from utility import scandir
 from pystackpath import Stackpath
 from os import environ as env
 import pelican
+import subprocess
 
 PUBLIC_DIR = os.path.abspath('output')
 PELICAN_CONF = os.path.abspath('pelicanconf.py')
+CONTENT_DIR = os.path.abspath('content')
+THEME_DIR = os.path.abspath('theme')
 
-print(PUBLIC_DIR, PELICAN_CONF)
+print(f"Public dir: {PUBLIC_DIR}, Pelican conf: {PELICAN_CONF}, Content: {CONTENT_DIR}, THEME_DIR {THEME_DIR}")
 ##Function to recursively upload files in a given dir tree.
 def upload_site(s3_client, bucket, dir_tree):
     for node in dir_tree:
@@ -53,16 +56,17 @@ def load_api_settings():
 
 if __name__ == '__main__':
 
-    KEY, SECRET, BUCKET = load_os_settings()
 
     pelican_settings = pelican.read_settings(PELICAN_CONF,override={
-            'THEME_STATIC_PATHS': ['theme']
+            'THEME': THEME_DIR,
+            'THEME_STATIC_PATHS': [THEME_DIR],
+            'PATH': CONTENT_DIR
 })
-
 
     pelican_build = pelican.Pelican(pelican_settings)
     pelican_build.run()
 
+    KEY, SECRET, BUCKET = load_os_settings()
     session = boto3.session.Session()
     public_dir_tree = scandir(PUBLIC_DIR)
 

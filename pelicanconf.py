@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
 from __future__ import unicode_literals
-
+import os
 AUTHOR = 'Dan Steinke'
 SITENAME = 'DanielSteinke.com'
 SITEURL = ''
 
-PATH = 'content'
+PATH = os.path.abspath('content')
+THEME = os.path.abspath('theme')
 
 TIMEZONE = 'America/Chicago'
-THEME = "theme"
 
 DEFAULT_LANG = 'en'
 DEFAULT_DATE_FORMAT = '%a %d %B %Y'

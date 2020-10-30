@@ -1,4 +1,5 @@
-title: Website Publishing Automation with Git, Heroku and Python
+title: Building a Static Web App with 
+summary: Website Publishing Automation with Gitp and Python; deployed on object storage and CDN.
 status: draft
 category: Projects
 slug: projects/website-automation
@@ -12,3 +13,4 @@ Recently, as a technical exercise, I decided to create an automated deployment p
 - It uses Heroku to automatically build and publish the website, meaning adding an article is a matter of composing in Markdown and pushing the changes to Git. Once content is pushed to the Github repo, Heroku runs my build script and publishes the page. 
 
 Granted, my site does not feature any dynamic content whatsoever, this approach could easily be expanded to incorporate that (think Javascript and microservices.) 
+
