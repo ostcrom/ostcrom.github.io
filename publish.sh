@@ -6,7 +6,7 @@ git add . &&\
 	git push origin master
 
 #Only rebuild base if req's have changed:
-if [[ git diff --exit-code ./requirements.txt ]]; then;
+if git diff --exit-code ./requirements.txt; then;
 	make docker-base
 fi;
 
