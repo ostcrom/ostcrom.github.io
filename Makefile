@@ -47,7 +47,7 @@ docker-base:
 	docker build --no-cache -t danielsteinke/dscom-base base/.
 
 docker-build:
-	docker build --no-cache -t danielsteinke/dscom-build build/.
+	docker build --no-cache -t danielsteinke/dscom-build docker-build/.
 
 docker-html:
 	docker run -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build make html
