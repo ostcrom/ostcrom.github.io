@@ -1,27 +1,78 @@
 #!/bin/bash
-read -p "Commit message: " COMMSG
-git add . &&\
-	git add -u && \
-	git commit -m "$COMMSG" && \
-	git push origin master
+
+##If no options are specified we do a normal build, otherwise we only run the specified items.
+if [ $# -eq 0 ]; then
+	DO_GIT=1
+	DO_BASE=0
+	DO_BUILD=1
+	DO_PUBLISH=1
+	DO_TEST=1
+else	
+	DO_GIT=0
+	DO_BASE=0
+	DO_BUILD=0
+	DO_PUBLISH=0
+	DO_TEST=0
+	while getopts ":gabhpt" opt; do
+		case $opt in
+			g) DO_GIT=1
+				;;
+			a) DO_BASE=1
+				;;
+			b) DO_BUILD=1
+				;;
+			h) DO_HTML=1
+				;;
+			p) DO_PUBLISH=1
+				;;
+			t) DO_TEST=1
+				;;
+		esac;	
+	done;
+fi;
+
+##Commit to git.
+if [ $DO_GIT -eq 1 ]; then
+	echo "Commiting to git..."
+	read -p "Commit message: " COMMSG
+	git add . &&\
+		git add -u && \
+		git commit -m "$COMMSG" && \
+		git push origin master
+fi;
 
 #Only rebuild base if req's have changed:
-if git diff --exit-code ./requirements.txt; then;
+if git diff --exit-code ./requirements.txt || [ DO_BASE -eq 1 ]; then;
+	echo "Building base image..."
 	make docker-base
 fi;
 
-make docker-build
-make docker-html
-make docker-publish
+if [ $DO_BUILD -eq 1]; then;
+	echo "Building Pelican build image..."
+	make docker-build
+fi;
 
-COMMITHASH=$(git rev-parse HEAD)
+if [ $DO_HTML -eq 1]; then;
+	echo "Running Pelican build..."
+	make docker-html
+fi;
 
-##Sleep for a bit to allow cache to clear...
+if [ $DO_PUBLISH -eq 1]; then;
+	echo "Publishing to web..."
+	make docker-publish
+fi;
 
-sleep 30
-##Check if our current commit hash is online
-if curl -s https://danielsteinke.com/index.html\?$RANDOM | grep $COMMITHASH; then
-	echo Publish successfull!
-else
-	echo Something went wrong, new commit hash not present.
+if [ $DO_TEST -eq 1 ]; then;
+	echo "Checking that commit hash is published in HTML comment..."
+	COMMITHASH=$(git rev-parse HEAD)
+
+	##Sleep for a bit to allow cache to clear...
+
+	sleep 30
+	##Check if our current commit hash is online
+	if curl -s https://danielsteinke.com/index.html\?$RANDOM | grep $COMMITHASH; then
+		echo Publish successfull!
+	else
+		echo Something went wrong, new commit hash not present.
+	fi;
 fi;
