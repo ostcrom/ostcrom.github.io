@@ -51,9 +51,9 @@ docker-publish:
 	docker run --env-file $(DS_SECRETS) -v $(PWD)/output:/code/danielsteinke.com/output danielsteinke/dscom-build make deploy
 
 html:
-	rm -rf $(PWD)/output/*
+	rm -rf output/*
 	$(PELICAN) $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
-	chmod o+rwx -R $(PWD)/output/*
+	chmod o+rwx -R output/*
 
 deploy:
 	python deploy.py
