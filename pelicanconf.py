@@ -37,4 +37,6 @@ DEFAULT_PAGINATION = 5
 # Uncomment following line if you want document-relative URLs when developing
 #RELATIVE_URLS = True
 
+
 COMMITHASH = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").rstrip()
+print(f"COMMITHASH: {COMMITHASH}")

@@ -67,6 +67,7 @@ if [[ $DO_PUBLISH -eq 1 ]]; then
 fi;
 
 if [[ $DO_TEST -eq 1 ]]; then
+	git pull origin
 	echo "Checking that commit hash is published in HTML comment..."
 	COMMITHASH=$(git rev-parse HEAD)
 
