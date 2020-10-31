@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- #
+
 from __future__ import unicode_literals
 import os
-
+import subprocess
 AUTHOR = 'Dan Steinke'
 SITENAME = 'DanielSteinke.com'
 SITEURL = ''
