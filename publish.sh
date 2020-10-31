@@ -35,6 +35,7 @@ fi;
 
 ##Commit to git.
 if [[ $DO_GIT -eq 1 ]]; then
+	git pull origin
 	echo "Commiting to git..."
 	read -p "Commit message: " COMMSG
 	git add . &&\
