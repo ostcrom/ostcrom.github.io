@@ -72,5 +72,5 @@ if __name__ == '__main__':
 
     s3_client = session.client( service_name='s3', aws_access_key_id=KEY, aws_secret_access_key=SECRET, endpoint_url='https://s3.us-east.stackpathstorage.com',)
 
-    upload_site(s3_client, BUCKET, public_dir_tree)
-    purge_cache()
+    #upload_site(s3_client, BUCKET, public_dir_tree)
+    #purge_cache()
