@@ -39,7 +39,7 @@ help:
 	@echo '                                                                          '
 
 docker-base:
-	docker build -t danielsteinke/dscom-base base/.
+	docker build --no-cache -t danielsteinke/dscom-base base/.
 
 docker-build:
 	docker build -t danielsteinke/dscom-build build/.
