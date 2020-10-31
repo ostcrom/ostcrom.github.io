@@ -1,4 +1,4 @@
 # danielsteinke.com
  GitHub repo for my static home page.
 
- Updates to my home page are published to the web by running publish.sh. That script commits the changes to Github and then runs a Docker image which clones the repo, builds the static HTML and publishes the updated site to the web. publish.py verifies the new commit hash is present as an HTML comment to verify an update has been published successfully.
+ Updates to my home page are published to the web by running publish.sh. publish.sh is bash script that uses recursive Makefile commands to maniupulate a Docker image/container to generate a static HTML page, deploy it to object storage and flush cdn. Also performs a rudimentary check that upload was successful by checking that index page has been updated with the git commit hash inside an HTML comment.
