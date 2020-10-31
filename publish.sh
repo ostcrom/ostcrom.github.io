@@ -12,7 +12,7 @@ COMMITHASH=$(git rev-parse HEAD)
 
 sleep 30
 ##Check if our current commit hash is online
-if $(curl https://danielsteinke.com/index.html\?$RANDOM | grep $COMMITHASH); then
+if curl -s https://danielsteinke.com/index.html\?$RANDOM | grep $COMMITHASH; then
 	echo Publish successfull!
 else
 	echo Something went wrong, new commit hash not present.
