@@ -7,7 +7,7 @@ INPUTDIR=$(BASEDIR)/content
 OUTPUTDIR=$(BASEDIR)/output
 CONFFILE=$(BASEDIR)/pelicanconf.py
 PUBLISHCONF=$(BASEDIR)/publishconf.py
-
+SECRETS_ENV=$(DS_SECRETS)
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
@@ -48,7 +48,7 @@ docker-html:
 	docker run -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build make html
 
 docker-publish:
-	docker run --env-file ../ds_env_secrets.env danielsteinke/dscom-build make deploy
+	docker run --env-file $(DS_SECRETS) -v $(PWD)/output:/code/danielsteinke.com/output danielsteinke/dscom-build make deploy
 
 html:
 	$(PELICAN) $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
