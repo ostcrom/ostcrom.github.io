@@ -23,6 +23,7 @@ help:
 	@echo 'Makefile for a pelican Web site                                           '
 	@echo '                                                                          '
 	@echo 'Usage:                                                                    '
+	@echo '   make docker                    generate Docker container to build site '
 	@echo '   make html                           (re)generate the web site          '
 	@echo '   make clean                          remove the generated files         '
 	@echo '   make regenerate                     regenerate files upon modification '
@@ -37,9 +38,24 @@ help:
 	@echo 'Set the RELATIVE variable to 1 to enable relative urls                    '
 	@echo '                                                                          '
 
+docker-base:
+	docker build -t danielsteinke/dscom-base base/.
+
+docker-build:
+	docker build -t danielsteinke/dscom-build build/.
+
+docker-html:
+	docker run -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build make html
+
+docker-publish:
+	docker run --env-file ../ds_env_secrets.env danielsteinke/dscom-build make deploy
+
 html:
 	$(PELICAN) $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
+	chmod o+rwx -Rv output/*
 
+deploy:
+	python deploy.py
 clean:
 	[ ! -d $(OUTPUTDIR) ] || rm -rf $(OUTPUTDIR)
 
