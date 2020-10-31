@@ -74,7 +74,7 @@ if [[ $DO_TEST -eq 1 ]]; then
 
 	##Sleep for a bit to allow cache to clear...
 
-	sleep 30
+	sleep 5
 	##Check if our current commit hash is online
 	if curl -s https://danielsteinke.com/index.html\?$RANDOM | grep $COMMITHASH; then
 		echo Publish successfull!
