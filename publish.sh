@@ -49,22 +49,22 @@ git diff --exit-code ./requirements.txt
 #Only rebuild base if req's have changed:
 if [[ $? -eq 1 ]] || [[ $DO_BASE -eq 1 ]]; then
 	echo "Building base image..."
-	make docker-base
+	make -B docker-base
 fi;
 
 if [[ $DO_BUILD -eq 1 ]]; then
 	echo "Building Pelican build image..."
-	make docker-build
+	make -B docker-build
 fi;
 
 if [[ $DO_HTML -eq 1 ]]; then
 	echo "Running Pelican build..."
-	make docker-html
+	make -B docker-html
 fi;
 
 if [[ $DO_PUBLISH -eq 1 ]]; then
 	echo "Publishing to web..."
-	make docker-publish
+	make -B docker-publish
 fi;
 
 if [[ $DO_TEST -eq 1 ]]; then
