@@ -4,10 +4,11 @@ PELICANOPTS=
 
 BASEDIR=$(CURDIR)
 INPUTDIR=$(BASEDIR)/content
-OUTPUTDIR=$(BASEDIR)/output
+OUTPUTDIR=$(BASEDIR)/www
 CONFFILE=$(BASEDIR)/pelicanconf.py
 PUBLISHCONF=$(BASEDIR)/publishconf.py
 SECRETS_ENV=$(DS_SECRETS)
+
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
@@ -43,14 +44,25 @@ help:
 	@echo 'Set the RELATIVE variable to 1 to enable relative urls                    '
 	@echo '                                                                          '
 
-docker-base:
-	docker build --no-cache -t danielsteinke/dscom-base base/.
+init-base:
+	docker build --no-cache -t danielsteinke/dscom-base docker-base/.
 
-docker-build:
+init-build:
 	docker build --no-cache -t danielsteinke/dscom-build docker-build/.
+init-publish:
+	docker build --no-cache -t daniesteinke/dscom-publish docker-publish/.
 
 docker-html:
 	docker run -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build make html
+
+docker-dns-sync:
+	docker run danielsteinke/dscom-base make dns-sync GD_API_KEY=$(GD_API_KEY) GD_API_SECRET=$(GD_API_SECRET) \
+		GD_SHOPPER_ID=$(GD_SHOPPER_ID) TARGET_DOMAIN=$(TARGET_DOMAIN) NS_DATA=$(NS_DATA)
+
+docker-serve:
+	docker run -p 8080:8080 -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build pelican -lr content -o output -p 8080 -b 0.0.0
+docker-serve-d:
+	docker run -d -p 8080:8080 -v $(OUTPUTDIR):/code/danielsteinke.com/output danielsteinke/dscom-build pelican -lr content -o output -p 8080 -b 0.0.0
 
 docker-publish:
 	docker run --env-file $(DS_SECRETS) -v $(PWD)/output:/code/danielsteinke.com/output danielsteinke/dscom-build make deploy
@@ -62,6 +74,10 @@ html:
 
 deploy:
 	python deploy.py
+
+dns-sync:
+	python dns-sync.py $(GD_API_KEY) $(GD_API_SECRET) $(GD_SHOPPER_ID) $(TARGET_DOMAIN) $(NS_DATA)
+
 clean:
 	[ ! -d $(OUTPUTDIR) ] || rm -rf $(OUTPUTDIR)
 
@@ -69,18 +85,7 @@ regenerate:
 	$(PELICAN) -r $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
 
 serve:
-ifdef PORT
-	$(PELICAN) -l $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS) -p $(PORT)
-else
-	$(PELICAN) -l $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
-endif
-
-serve-global:
-ifdef SERVER
-	$(PELICAN) -l $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS) -p $(PORT) -b $(SERVER)
-else
-	$(PELICAN) -l $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS) -p $(PORT) -b 0.0.0.0
-endif
+	$(PELICAN) -lr $(INPUTDIR) -o output -p 8080 -b 0.0.0.0
 
 
 devserver:
