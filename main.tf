@@ -123,6 +123,35 @@ resource "azurerm_cdn_endpoint" "endpoint" {
     host_name = azurerm_storage_account.storage.primary_web_host
   }
  origin_host_header = azurerm_storage_account.storage.primary_web_host
+delivery_rule {
+ name = "ForwardToHTTPS"
+ order = 2
+ request_scheme_condition {
+  operator = "Equal"
+  match_values = ["HTTP"]
+ }
+
+ url_redirect_action {
+  redirect_type = "Found"
+  protocol = "Https"
+  hostname = "www.danielsteinke.com"
+ }
+}
+delivery_rule {
+ name = "ForwardToWWW"
+ order = 1
+ request_uri_condition {
+  operator = "BeginsWith"
+  match_values = ["danielsteinke.com"]
+ }
+
+ url_redirect_action {
+  redirect_type = "Found"
+  protocol = "Https"
+  hostname = "www.danielsteinke.com"
+ }
+}
+ 
 }
 
 resource "azurerm_cdn_endpoint_custom_domain" "dscom_www_domain" {

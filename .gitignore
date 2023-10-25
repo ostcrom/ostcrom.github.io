@@ -134,9 +134,13 @@ dmypy.json
 
 ##Don't upload our final build...
 output/
+www/
 ##Dont commit our commit hash..
 commithash.py
 ##Vim tmp files
 *.swp
 *.swo
 
+*.tfvars
+*.tfstate
+*.backup
