@@ -1,4 +1,4 @@
-#danielsteinke.com
+# danielsteinke.com
 
 This repo allows you to generate the static HTML site for danielsteinke.com using the Pelican framework in Python and deploy it to Azure using Terraform.
 
