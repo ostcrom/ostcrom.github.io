@@ -18,3 +18,8 @@ make terraform-apply
 ```
 make terraform-destroy
 ```
+
+5. If there are issues destorying due to the CDN Feature Registration, fix it by running this make target:
+```
+make terraform-apply-cdn
+```
