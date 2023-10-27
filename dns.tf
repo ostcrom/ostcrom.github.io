@@ -4,7 +4,7 @@ resource "azurerm_dns_zone" "zone" {
 
  provisioner "local-exec" {
   command = <<CMD
-make docker-dns-sync GD_API_KEY=${var.gd_api_key} GD_API_SECRET=${var.gd_api_secret} \
+make dns-sync GD_API_KEY=${var.gd_api_key} GD_API_SECRET=${var.gd_api_secret} \
 GD_SHOPPER_ID=${var.gd_shopper_id} TARGET_DOMAIN=${var.target_domain} NS_DATA=${jsonencode(azurerm_dns_zone.zone.name_servers)}
 CMD
 
@@ -12,9 +12,9 @@ CMD
 
 }
 
-resource "time_sleep" "wait_five_minutes" {
+resource "time_sleep" "wait_two_minutes" {
  depends_on = [azurerm_dns_zone.zone]
- create_duration = "5m"
+ create_duration = "2m"
 }
 
 

@@ -5,27 +5,7 @@ provider "azurerm" {
   tenant_id         = var.azure_tenant_id
   client_id         = var.azure_client_id
   client_secret     = var.azure_client_secret
-  skip_provider_registration = true
 }
-
-import {
- to = azurerm_resource_provider_registration.CdnRegistration
- id = "/subscriptions/${var.azure_subscription_id}/providers/Microsoft.Cdn"
-}
-
-#Registering this resource provider to avoid errors complaining
-#about DNS when deleting CDN Custom domains.
-#Per this post: 
-#https://discuss.hashicorp.com/t/is-it-possible-to-change-the-destroy-order/30303/8
-resource "azurerm_resource_provider_registration" "CdnRegistration"{
- name = "Microsoft.Cdn"
-
- feature {
-  name = "BypassCnameCheckForCustomDomainDeletion"
-  registered = true
- }
-}
-
 
 resource "azurerm_resource_group" "rg" {
  location	= var.location
@@ -54,6 +34,7 @@ resource "azurerm_storage_blob" "web_blob" {
  storage_container_name = "$web"
  type = "Block"
  content_type = lookup(var.content_map, regex("\\.[^.]+$", each.value), null)
+ content_md5 = filemd5(each.key)
  source = each.key
 }
 
@@ -159,7 +140,7 @@ resource "azurerm_cdn_endpoint_custom_domain" "dscom_www_domain" {
  cdn_endpoint_id = azurerm_cdn_endpoint.endpoint.id
  host_name = "www.${var.target_domain}"
 
- depends_on = [azurerm_dns_a_record.www, azurerm_dns_cname_record.cdnverify_www, time_sleep.wait_five_minutes]
+ depends_on = [azurerm_dns_a_record.www, azurerm_dns_cname_record.cdnverify_www, time_sleep.wait_two_minutes]
  cdn_managed_https {
   certificate_type = "Dedicated"
   protocol_type = "ServerNameIndication"
@@ -167,7 +148,7 @@ resource "azurerm_cdn_endpoint_custom_domain" "dscom_www_domain" {
 }
 
 resource "azurerm_cdn_endpoint_custom_domain" "dscom_apex_domain" {
- depends_on = [azurerm_dns_a_record.apex, azurerm_dns_cname_record.cdnverify_apex, time_sleep.wait_five_minutes]
+ depends_on = [azurerm_dns_a_record.apex, azurerm_dns_cname_record.cdnverify_apex, time_sleep.wait_two_minutes]
  name = "cdn-domain-apex-${random_string.instance_string.id}"
  cdn_endpoint_id = azurerm_cdn_endpoint.endpoint.id
  host_name = "${var.target_domain}"
