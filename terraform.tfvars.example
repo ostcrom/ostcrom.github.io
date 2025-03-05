@@ -1,8 +1,0 @@
-gd_api_key = ""
-gd_api_secret = ""
-gd_shopper_id = "1234567890"
-target_domain = "example.com"
-azure_subscription_id   = ""
-azure_tenant_id         = ""
-azure_client_id         = ""
-azure_client_secret     = ""
