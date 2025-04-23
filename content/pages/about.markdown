@@ -1,5 +1,6 @@
 title: About
 
-- Small corner of the web to post about things I am interested in.
-- Opinions posted here are my own.
-- [Github repository for this website.](https://github.com/ostcrom/danielsteinke.com)
+- Welcome to my small corner of the web, where I share things that interest me.
+- Everything I post here reflects my own thoughts and opinions.
+- The [source code](https://github.com/ostcrom/ostcrom.github.io/)  for this site is available on GitHub.
+- All first drafts are written by me—some revisions may be assisted by AI language models.
