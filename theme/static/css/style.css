@@ -3,6 +3,14 @@ html {
 	position: relative;
 }
 
+pre{
+	background: gray;
+	overflow: scroll;
+	padding: 20px;
+	border-radius: 15px;
+	color: white;
+}
+
 body {
 	color: #fff;
 	margin: 0 0 100px;
@@ -117,6 +125,7 @@ a {
 	background: #fffff0;
 	margin-left: 10%;
 	border: 1px solid #fff;
+	border-radius: 0 0 20px 20px;
 }
 
 #wrapper a {
@@ -198,6 +207,15 @@ div.settings div.change {
 	width: 52%;
 	text-align: left;
 	margin-left: 10%;
+}
+
+img {
+       border-radius: 20px;
+}
+
+.big-img {
+        width: 100%;
+	height: auto;
 }
 
 footer {
