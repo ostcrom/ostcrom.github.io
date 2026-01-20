@@ -2,7 +2,7 @@
 title: Running Jenkins on Kubernetes with Ephemeral Build Agents
 slug: posts/jenkins-kubernetes
 category: Tech Tutorial
-summary: A guide showing how to use Helm to deploy Jenkins on a Kubernetes cluster and enable it to
+summary: A guide showing how to use Helm to deploy Jenkins on a Kubernetes cluster and enable it to spin up build agents on demand.
 date: 2026-01-19
 ---
 Deploying Jenkins to Kubernetes with Agent Integration
