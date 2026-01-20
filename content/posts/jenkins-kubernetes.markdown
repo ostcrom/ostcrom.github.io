@@ -4,12 +4,6 @@ slug: posts/jenkins-kubernetes
 category: Tech Tutorial
 summary: A guide showing how to use Helm to deploy Jenkins on a Kubernetes cluster and enable it to
 date: 2026-01-19
-tags:
-  - tutorial
-  - kubernetes
-  - jenkins
-  - cicd
-  - operations
 ---
 Deploying Jenkins to Kubernetes with Agent Integration
 
