@@ -1,69 +1,55 @@
-PY?=python3
-PELICAN?=pelican
-PELICANOPTS=
+PY ?= python3
+PELICAN ?= pelican
+PELICANOPTS =
 
-BASEDIR=$(CURDIR)
+REGISTRY_HOST ?= danielsteinke.com
+VERSION ?= 1.0
+
+REPO_URL ?= https://github.com/ostcrom/ostcrom.github.io
+MAIN_BRANCH ?= main
+PUBLISH_BRANCH ?= publish
+
+BASEDIR := $(CURDIR)
 CURRENT_UID := $(shell id -u)
-CURRENT_UID_OPT=--user $(CURRENT_UID)
-INPUTDIRNAME=content
-INPUTDIR=$(BASEDIR)/$(INPUTDIRNAME)
-OUTPUTDIRNAME=docs
-OUTPUTDIR=$(BASEDIR)/$(OUTPUTDIRNAME)
-CDNAPPLYDIR=$(BASEDIR)/$(CDNAPPLYDIRNAME)
-CONFFILE=$(BASEDIR)/pelicanconf.py
-SECRETS_ENV=$(DS_SECRETS)
+CURRENT_UID_OPT := --user $(CURRENT_UID)
 
+INPUTDIRNAME := content
+INPUTDIR := $(BASEDIR)/$(INPUTDIRNAME)
+
+OUTPUTDIRNAME := docs
+OUTPUTDIR := $(BASEDIR)/$(OUTPUTDIRNAME)
+
+CONFFILE := $(BASEDIR)/pelicanconf.py
 
 DEBUG ?= 0
-ifeq ($(DEBUG), 1)
+ifeq ($(DEBUG),1)
 	PELICANOPTS += -D
 endif
 
 RELATIVE ?= 0
-ifeq ($(RELATIVE), 1)
+ifeq ($(RELATIVE),1)
 	PELICANOPTS += --relative-urls
 endif
 
+.PHONY: help generate-html clean serve docker-init docker-html docker-serve
+
 help:
-	@echo 'Makefile for a pelican Web site                                           '
-	@echo '                                                                          '
-	@echo 'Usage:                                                                    '
-	@echo '   make docker-base                   Generate Docker container requesites'
-	@echo '   make generate-html      User docker build image to render content to HTML'
-	@echo '                                                                          '
+	@echo "Makefile for a Pelican website"
+	@echo ""
+	@echo "Usage:"
+	@echo "  make generate-html   Render content to HTML"
+	@echo "  make serve           Serve generated site locally"
+	@echo "  make clean           Remove generated output"
+	@echo "  make docker-init  REGISTRY_HOST=hostname	Build Docker container image"
+	@echo "  make docker-push REGISTRY_HOST=hostname	Push Docker container image to registry."
+	@echo "  make docker-html     Generate HTML inside Docker container"
+	@echo "  make docker-serve    Serve site inside Docker container"
 
-##Init targets
-## These targets need to be run first, they create the docker images used to generate the HTML and deploy the site.
 
-init-base:
-	docker build --no-cache -t danielsteinke/dscom-base docker-base/.
+init:
+	git pull $(REPO_URL)
 
-##Main targets
-##These three targets are the main targets, to generate the HTML,
-##and deploy infrastructure/changes to Azure. 
 generate-html:
-	docker run -v $(CURDIR):$(CURDIR) -w $(CURDIR) \
-		$(CURRENT_UID_OPT) \
-		danielsteinke/dscom-base make html
-
-##These targets launch a test server to view the current output. 
-docker-serve:
-	docker run -p 8080:8080 \
-		$(CURRENT_UID_OPT) \
-		-v $(OUTPUTDIR):/code/danielsteinke.com/$(OUTPUTDIRNAME) \
-		danielsteinke/dscom-base \
-		pelican -lr content \
-		-o $(OUTPUTDIRNAME) -p 8080 -b 0.0.0
-docker-serve-d:
-	docker run -d -p 8080:8080 \
-		$(CURRENT_UID_OPT) \
-		-v $(OUTPUTDIR):/code/danielsteinke.com/$(OUTPUTDIRNAME) \
-		danielsteinke/dscom-base \
-		pelican -lr content \
-		-o $(OUTPUTDIRNAME) -p 8080 -b 0.0.0
-
-##None of these targets should be called directly under normal operation.
-html:
 	rm -rf $(OUTPUTDIR)/*
 	$(PELICAN) $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
 	chmod o+rwx -R $(OUTPUTDIR)/*
@@ -74,12 +60,25 @@ clean:
 serve:
 	$(PELICAN) -lr $(INPUTDIR) -o $(OUTPUTDIR) -p 8080 -b 0.0.0.0
 
+docker-init:
+	docker build --no-cache -t $(REGISTRY_HOST)/dscom-build:latest \
+		-t $(REGISTRY_HOST)/dscom-build:$(VERSION) \
+		./
 
-devserver:
-ifdef PORT
-	$(PELICAN) -lr $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS) -p $(PORT)
-else
-	$(PELICAN) -lr $(INPUTDIR) -o $(OUTPUTDIR) -s $(CONFFILE) $(PELICANOPTS)
-endif
+docker-push:
+	docker push $(REGISTRY_HOST)/dscom-build:latest
+	docker push $(REGISTRY_HOST)/dscom-build:$(VERSION)
 
-.PHONY: html help clean regenerate serve serve-global devserver publish 
+docker-html:
+	docker run \
+		$(CURRENT_UID_OPT) \
+		-v $(BASEDIR):/code/danielsteinke.com \
+		danielsteinke/dscom-build \
+		make generate-html
+
+docker-serve:
+	docker run -p 8080:8080 \
+		$(CURRENT_UID_OPT) \
+		-v $(OUTPUTDIR):/code/danielsteinke.com/$(OUTPUTDIRNAME) \
+		danielsteinke/dscom-build \
+		pelican -lr content -o $(OUTPUTDIRNAME) -p 8080 -b 0.0.0.0
