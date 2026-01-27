@@ -44,7 +44,7 @@ spec:
       defaultValue: '',
       description: 'Options for pelican build command.'
     )
-	string(
+    string(
       name: 'MAIN_BRANCH',
       defaultValue: 'main',
       description: 'Name of the branch that contains the content source.'
