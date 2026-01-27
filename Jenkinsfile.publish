@@ -78,6 +78,7 @@ spec:
             echo "=== Configuring git for build ==="
             git config --global --add safe.directory $(pwd)
             git checkout ${PUBLISH_BRANCH}
+	    git reset --hard ${MAIN_BRANCH}
             echo "=== Building site ==="
             pelican ${INPUT_DIR} -o ${OUTPUT_DIR} -s ${CONF_FILE} ${PELICAN_OPTS}
             cp CNAME ${OUTPUT_DIR}/CNAME
