@@ -111,7 +111,7 @@ spec:
               ls -lha
               ls -lha docs/
 
-              GIT_PATH=`echo ${GIT_URL} | awk '{sub("https://", ""); print}'
+              GIT_PATH=`echo ${GIT_URL} | awk '{sub("https://", ""); print}'`
               git push -f https://${GIT_USER}:${GIT_PASS}@$GIT_PATH ${PUBLISH_BRANCH}
             '''
           }
