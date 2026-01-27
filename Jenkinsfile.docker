@@ -1,0 +1,81 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["/busybox/sleep"]
+    args: ["999"]
+    tty: true
+    volumeMounts:
+    - name: docker-config
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: docker-config
+    secret:
+      secretName: docker-config
+"""
+    }
+  }
+
+  parameters {
+	string(
+      name: 'GIT_URL',
+      defaultValue: 'https://github.com/ostcrom/ostcrom.github.io.git',
+      description: 'URL to Git repo to pull from.'
+    )
+    string(
+      name: 'IMAGE_NAME',
+      defaultValue: 'dscom-build',
+      description: 'Docker image name'
+    )
+    string(
+      name: 'IMAGE_TAG',
+      defaultValue: '',
+      description: 'Image tag (empty = BUILD_NUMBER)'
+    )
+    string(
+      name: 'DOCKERFILE',
+      defaultValue: 'Dockerfile',
+      description: 'Path to Dockerfile'
+    )
+    string(
+      name: 'CONTEXT_DIR',
+      defaultValue: '.',
+      description: 'Build context directory'
+    )
+  }
+
+  environment {
+    FINAL_TAG = "${params.IMAGE_TAG ?: env.BUILD_NUMBER}"
+
+  }
+
+  stages {
+    stage('Build & Push Image') {
+    environment {
+	    REGISTRY_HOST = credentials('registry-host')
+    }
+      steps {
+        git branch: 'main', url: "${params.GIT_URL}"
+        container('kaniko') {
+          sh '''
+            set -euo pipefail
+            
+            IMAGE_REF="${REGISTRY_HOST}/${IMAGE_NAME}"
+            echo $IMAGE_REF
+            /kaniko/executor \
+              --context "${CONTEXT_DIR}" \
+              --dockerfile "${DOCKERFILE}" \
+              --destination "${IMAGE_REF}:${FINAL_TAG}" \
+              --destination "$IMAGE_REF:latest"
+              '''
+        }
+      }
+    }
+  }
+}

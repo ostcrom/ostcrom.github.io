@@ -1,0 +1,122 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: builder
+    image: registry.local/dscom-build:latest
+    command: ["cat"]
+    tty: true
+"""
+    }
+  }
+  parameters {
+	string(
+      name: 'GIT_URL',
+      defaultValue: 'github.com/ostcrom/ostcrom.github.io.git',
+      description: 'URL to Git repo to pull from.'
+    )
+    string(
+      name: 'IMAGE_TAG',
+      defaultValue: '',
+      description: 'Image tag (empty = BUILD_NUMBER)'
+    )
+    string(
+      name: 'INPUT_DIR',
+      defaultValue: 'content',
+      description: 'Path to content input directory'
+    )
+    string(
+      name: 'OUTPUT_DIR',
+      defaultValue: 'docs',
+      description: 'Path to content output directory'
+    )
+    string(
+      name: 'CONF_FILE',
+      defaultValue: 'pelicanconf.py',
+      description: 'Path to conf file'
+    )
+    string(
+      name: 'PELICAN_OPTS',
+      defaultValue: '',
+      description: 'Options for pelican build command.'
+    )
+	string(
+      name: 'MAIN_BRANCH',
+      defaultValue: 'main',
+      description: 'Name of the branch that contains the content source.'
+    )
+    string(
+      name: 'PUBLISH_BRANCH',
+      defaultValue: 'publish',
+      description: 'Name of the branch where finished build will be pushed to publish.'
+    )
+  }
+
+  stages {
+
+    stage('Checkout Source') {
+      steps {
+	  checkout([
+		$class: 'GitSCM',
+		branches: [[name: "*/${MAIN_BRANCH}"]],
+		userRemoteConfigs: [[
+		  url: "https://${GIT_URL}",
+		  credentialsId: 'github-creds'
+		]]
+	  ])
+      }
+    }
+
+    stage('Build Site') {
+      steps {
+        container('builder') {
+          sh '''
+            echo "=== Configuring git for build ==="
+            git config --global --add safe.directory $(pwd)
+            git checkout ${PUBLISH_BRANCH}
+            echo "=== Building site ==="
+            pelican ${INPUT_DIR} -o ${OUTPUT_DIR} -s ${CONF_FILE} ${PELICAN_OPTS}
+            cp CNAME ${OUTPUT_DIR}/CNAME
+          '''
+        }
+      }
+    }
+
+	stage('Commit & Push') {
+      steps {
+        container('builder') {
+          withCredentials([usernamePassword(
+            credentialsId: 'github-creds',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+          )]) {
+            sh '''
+              echo "=== Configuring git ==="
+              git config --global user.email "jenkins@local.build"
+              git config --global user.name "DSCOM Jenkins Agent"
+              
+              echo "=== Committing artifacts ==="
+              awk '$0 != "docs/"' .gitignore > /tmp/.gitignore && mv /tmp/.gitignore .gitignore
+              git add ${OUTPUT_DIR}
+              
+              git diff --cached --name-only
+
+              git commit -m "Site build ${BUILD_NUMBER}"
+
+              echo "=== Pushing publish branch ==="
+              ls -lha
+              ls -lha docs/
+
+              git push -f https://${GIT_USER}:${GIT_PASS}@${GIT_URL} ${PUBLISH_BRANCH}
+            '''
+          }
+        }
+      }
+    }   
+    
+  }
+}
