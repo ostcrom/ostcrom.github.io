@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	<title>/home/dsteinke - running jenkins on kubernetes with ephemeral build agents</title>
+	<!-- base href="http://danielsteinke.com/" -->
+	<link rel="stylesheet" href="/theme/css/style.css">
+	<meta name="description" content="Tech notes, projects.">
+	<meta name="keywords" content="linux, devops, sre, automation, personal, daniel steinke, dan steinke">
+</head>
+<body>
+	<header>
+		<nav id="nav">
+			<h1 id="main-title"><a href="https://www.danielsteinke.com/">/home/dsteinke</a></h1>
+			<ul>
+				<li><a href="/index.html">home</a></li>
+				<li><a href="/pages/about.html">about</a></li>
+				<li><a href="/categories.html">posts</a></li>
+			</ul>
+		</nav>
+	</header>
+
+	<div class="clear"></div>
+	<div id="wrapper">
+
+						<h2 class="title"><a href="/posts/jenkins-kubernetes.html">Running Jenkins on Kubernetes with Ephemeral Build Agents</a></h2>
+						<p class="meta"><span class="date">Posted Mon 19 January 2026 </span><span>&nbsp; | Category : <a href="/category/tech-tutorial.html">Tech Tutorial</a></span></p>
+						<div style="clear: both;"></div>
+						<div class="entry">
+						 <p>Deploying Jenkins to Kubernetes with Agent Integration</p>
+<h1>Overview</h1>
+<p>In this guide, we’re going to deploy a Jenkins instance on Kubernetes using Helm and configure it to launch ephemeral build agents using the Jenkins Kubernetes plugin. The end goal is a Jenkins setup where pipeline jobs run inside short-lived Kubernetes pods instead of directly on the Jenkins controller.</p>
+<p>I’ll walk through the steps I followed, call out places where your environment may differ from mine, and pause occasionally to explain <em>why</em> certain pieces are configured the way they are. This guide assumes you’re already comfortable with Kubernetes fundamentals, Helm, and basic Jenkins usage.</p>
+<h2>Prerequisites</h2>
+<ul>
+<li>A Kubernetes cluster.</li>
+<li>An ingress controller configured for your cluster.<ul>
+<li>While most of this guide should work on any Kubernetes cluster, ingress configurations vary widely.</li>
+<li>The ingress example later in this guide is based on K3s with Traefik and cert-manager.</li>
+<li>These are the references I followed when setting up my own environment:<ul>
+<li>A K3s cluster with a demo application deployed:<br>
+<a href="https://k3s.rocks/first-deploy/">k3s.rocks: First Deploy</a></li>
+<li>K3s with Traefik and Let’s Encrypt configured:<br>
+<a href="https://k3s.rocks/https-cert-manager-letsencrypt/">k3s.rocks: HTTPS with Cert-Manager and Let's Encrypt</a></li>
+<li>Working DNS routing.<ul>
+<li>In my setup, the Jenkins hostname is accessible both internally and externally.</li>
+<li>Internal DNS resolves to the cluster’s local IP, while external DNS resolves to its public IP.</li>
+<li>DNS configuration is outside the scope of this guide.</li>
+</ul>
+</li>
+<li>Optional Traefik hardening reference:<br>
+<a href="https://chatgpt.com/posts/restrict-traefik-access.html">Configure Traefik to Restrict External Access to Services</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>kubectl</code> and <code>helm</code> installed and configured with access to your Kubernetes cluster.</li>
+</ul>
+<h2>Prepare Kubernetes and Helm</h2>
+<p>First, we’ll create a dedicated namespace for Jenkins:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>ns<span class="w"> </span>jenkins
+</code></pre></div>
+
+<p>Next, we’ll add the Jenkins Helm repository and update it locally:</p>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>jenkins<span class="w"> </span>https://charts.jenkins.io
+helm<span class="w"> </span>repo<span class="w"> </span>update
+</code></pre></div>
+
+<h2>Deploy Jenkins with Helm</h2>
+<p>Before deploying Jenkins, we need to create a <code>values.yaml</code> file. This file is where we’ll define most of Jenkins’ behavior, including persistence, plugin installation, RBAC configuration, and Jenkins Configuration as Code (JCasC).</p>
+<p>Here’s the <code>values.yaml</code> file I’m using:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">controller</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;lts&quot;</span>
+
+<span class="w">  </span><span class="nt">serviceType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterIP</span>
+
+<span class="w">  </span><span class="nt">admin</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">create</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="w">  </span><span class="nt">persistence</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20Gi</span>
+
+<span class="w">  </span><span class="nt">serviceAccount</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">create</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins</span>
+
+<span class="w">  </span><span class="nt">installPlugins</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workflow-aggregator</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">git</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">configuration-as-code</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker-workflow</span>
+
+<span class="w">  </span><span class="nt">JCasC</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">configScripts</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">kubernetes-cloud.yaml</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">        </span><span class="no">jenkins:</span>
+<span class="w">          </span><span class="no">clouds:</span>
+<span class="w">            </span><span class="no">- kubernetes:</span>
+<span class="w">                </span><span class="no">name: &quot;kubernetes&quot;</span>
+<span class="w">                </span><span class="no">serverUrl: &quot;https://kubernetes.default&quot;</span>
+<span class="w">                </span><span class="no">namespace: &quot;jenkins&quot;</span>
+<span class="w">                </span><span class="no">jenkinsUrl: &quot;http://jenkins.jenkins.svc.cluster.local:8080&quot;</span>
+<span class="w">                </span><span class="no">containerCap: 10</span>
+<span class="w">                </span><span class="no">connectTimeout: 5</span>
+<span class="w">                </span><span class="no">readTimeout: 15</span>
+<span class="w">                </span><span class="no">retentionTimeout: 5</span>
+<span class="w">                </span><span class="no">templates:</span>
+<span class="w">                  </span><span class="no">- name: &quot;default-agent&quot;</span>
+<span class="w">                    </span><span class="no">label: &quot;k8s-agent&quot;</span>
+<span class="w">                    </span><span class="no">idleMinutes: 1</span>
+<span class="w">                    </span><span class="no">serviceAccount: &quot;jenkins&quot;</span>
+<span class="w">                    </span><span class="no">containers:</span>
+<span class="w">                      </span><span class="no">- name: &quot;jnlp&quot;</span>
+<span class="w">                        </span><span class="no">image: &quot;jenkins/inbound-agent:latest&quot;</span>
+<span class="w">                        </span><span class="no">workingDir: &quot;/home/jenkins&quot;</span>
+<span class="w">                        </span><span class="no">args: &quot;^${computer.jnlpmac} ^${computer.name}&quot;</span>
+</code></pre></div>
+
+<p>Before applying this configuration, it’s worth calling attention to two key sections: <code>installPlugins</code> and <code>JCasC</code>.</p>
+<p>The <code>installPlugins</code> section does exactly what it sounds like. It defines the set of plugins that will be installed when Jenkins starts up. The most important one for this guide is the <code>kubernetes</code> plugin, which allows Jenkins to talk to the Kubernetes API and spin up build agent pods. The <code>configuration-as-code</code> plugin is what allows us to define Jenkins configuration directly in this YAML file instead of clicking through the UI.</p>
+<p>The <code>JCasC</code> section is where that configuration actually lives. Here, we define a Kubernetes cloud and a single default agent template. Any pipeline that asks for an agent with the label <code>k8s-agent</code> will cause Jenkins to create a new pod using this template. Those pods are ephemeral by design and will disappear once the job finishes.</p>
+<p>Once the file is ready, we can deploy Jenkins using Helm:</p>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span><span class="se">\</span>
+jenkins<span class="w"> </span>jenkins/jenkins<span class="w"> </span><span class="se">\</span>
+--namespace<span class="w"> </span>jenkins<span class="w"> </span><span class="se">\</span>
+--values<span class="w"> </span>./values.yaml
+</code></pre></div>
+
+<p>After a minute or so, Helm will finish deploying the chart. The chart generates an admin password automatically, which we can retrieve with the following command:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--namespace<span class="w"> </span>jenkins<span class="w"> </span><span class="se">\</span>
+-it<span class="w"> </span>svc/jenkins<span class="w"> </span><span class="se">\</span>
+-c<span class="w"> </span>jenkins<span class="w"> </span>--<span class="w"> </span>/bin/cat<span class="w"> </span>/run/secrets/additional/chart-admin-password<span class="w"> </span><span class="se">\</span>
+<span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</code></pre></div>
+
+<p>Make a note of this password, as you’ll need it to log in to Jenkins for the first time.</p>
+<h2>Review the Service Account and RBAC Configuration</h2>
+<p>Before moving on, it’s useful to take a quick look at what the Helm chart created from an RBAC perspective. Jenkins needs permission to create and manage pods in order to launch Kubernetes-based build agents, and these permissions are provided via a service account, roles, and role bindings.</p>
+<p>First, list the service accounts in the <code>jenkins</code> namespace:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>serviceaccount<span class="w"> </span>-n<span class="w"> </span>jenkins
+</code></pre></div>
+
+<p>Example output from my cluster:</p>
+<div class="highlight"><pre><span></span><code>NAME<span class="w">      </span>SECRETS<span class="w">   </span>AGE
+default<span class="w">   </span><span class="m">0</span><span class="w">         </span>105m
+jenkins<span class="w">   </span><span class="m">0</span><span class="w">         </span>36m
+</code></pre></div>
+
+<p>Next, list the roles:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>roles<span class="w"> </span>-n<span class="w"> </span>jenkins
+</code></pre></div>
+
+<p>Example output:</p>
+<div class="highlight"><pre><span></span><code>NAME<span class="w">                      </span>CREATED<span class="w"> </span>AT
+jenkins-casc-reload<span class="w">       </span><span class="m">2026</span>-01-19T18:04:00Z
+jenkins-schedule-agents<span class="w">   </span><span class="m">2026</span>-01-19T18:04:00Z
+</code></pre></div>
+
+<p>If you’re curious about what permissions these roles grant, <code>kubectl describe role &lt;role-name&gt;</code> is a helpful way to inspect them.</p>
+<p>Finally, list the role bindings:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>rolebinding<span class="w"> </span>-n<span class="w"> </span>jenkins
+</code></pre></div>
+
+<p>Example output:</p>
+<div class="highlight"><pre><span></span><code>NAME<span class="w">                       </span>ROLE<span class="w">                           </span>AGE
+jenkins-schedule-agents<span class="w">    </span>Role/jenkins-schedule-agents<span class="w">   </span>54m
+jenkins-watch-configmaps<span class="w">   </span>Role/jenkins-casc-reload<span class="w">       </span>54m
+</code></pre></div>
+
+<p>This setup gives Jenkins exactly what it needs to schedule agent pods and watch for configuration changes, without granting unnecessary cluster-wide permissions.</p>
+<h2>Jenkins Web Ingress (Optional)</h2>
+<p>If you’re using Traefik as your ingress controller, you can expose the Jenkins web interface with a configuration like the one below. This example is Traefik-specific and may not translate directly to other ingress implementations.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins-tls-ingress</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">cert-manager.io/cluster-issuer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">letsencrypt-prod</span>
+<span class="w">    </span><span class="nt">traefik.ingress.kubernetes.io/router.middlewares</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="w">      </span><span class="no">default-redirect-https@kubernetescrd,</span>
+<span class="w">      </span><span class="no">default-local-ip-allowlist@kubernetescrd</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ingressClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">traefik</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins.example.com</span>
+<span class="w">      </span><span class="nt">http</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">paths</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
+<span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Prefix</span>
+<span class="w">            </span><span class="nt">backend</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">service</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins</span>
+<span class="w">                </span><span class="nt">port</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
+<span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins-tls</span>
+<span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins.example.com</span>
+</code></pre></div>
+
+<h2>Test the Jenkins Installation</h2>
+<p>At this point, we should have a running Jenkins instance. To confirm everything is wired up correctly, we’ll create a simple pipeline job.</p>
+<ol>
+<li>
+<p>Navigate to the Jenkins web interface.</p>
+</li>
+<li>
+<p>Log in with the username <code>admin</code> and the password retrieved earlier.</p>
+</li>
+<li>
+<p>Select <strong>New Item</strong>, give the job a name, and choose <strong>Pipeline</strong>.</p>
+</li>
+<li>
+<p>On the Pipeline configuration page, paste the following into the <strong>Script</strong> field and save.</p>
+</li>
+</ol>
+<p>This pipeline explicitly requests a Kubernetes-based agent using the <code>k8s-agent</code> label we defined earlier in the JCasC configuration.</p>
+<div class="highlight"><pre><span></span><code><span class="n">pipeline</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">agent</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="n">kubernetes</span><span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="n">label</span><span class="w"> </span><span class="s1">&#39;k8s-agent&#39;</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="w">  </span><span class="o">}</span>
+
+<span class="w">  </span><span class="n">stages</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span><span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="n">steps</span><span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="n">sh</span><span class="w"> </span><span class="s1">&#39;echo hello from kubernetes agent&#39;</span>
+<span class="w">        </span><span class="n">sh</span><span class="w"> </span><span class="s1">&#39;hostname&#39;</span>
+<span class="w">      </span><span class="o">}</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+
+<p>After saving, you’ll be taken back to the job overview page. From here, click <strong>Build Now</strong> and give the job a minute or two to run. While it’s running, you can use <code>kubectl get pods -n jenkins</code> to watch the agent pod appear. These pods don’t stick around for long, so timing is important.</p>
+<p>Back in the Jenkins UI, the build should complete successfully. If you open the build and review the <strong>Console Output</strong>, you should see output confirming that the job ran inside a Kubernetes pod.</p>
+<h2>Summary</h2>
+<p>At this point, Jenkins is running on Kubernetes and successfully provisioning ephemeral build agents using the Kubernetes plugin. The controller is configured entirely through Helm and Jenkins Configuration as Code, giving you a solid, repeatable foundation for building more complex pipelines on top of this setup.</p>
+					 </div>
+				<!-- end #content -->
+
+	</div>
+	<div class="clear"></div>
+	<footer><p>Amor Vincit Omnia | © Dan Steinke</p></footer>
+	<script src="/theme/js/bg.js"></script>
+	<!-- e8df4cf480be03f65f4ed65e4290c23a4e580113  -->
+</body></html>

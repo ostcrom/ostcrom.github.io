@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	<title>/home/dsteinke - restricting ip access to a k3s cluster with traefik</title>
+	<!-- base href="http://danielsteinke.com/" -->
+	<link rel="stylesheet" href="/theme/css/style.css">
+	<meta name="description" content="Tech notes, projects.">
+	<meta name="keywords" content="linux, devops, sre, automation, personal, daniel steinke, dan steinke">
+</head>
+<body>
+	<header>
+		<nav id="nav">
+			<h1 id="main-title"><a href="https://www.danielsteinke.com/">/home/dsteinke</a></h1>
+			<ul>
+				<li><a href="/index.html">home</a></li>
+				<li><a href="/pages/about.html">about</a></li>
+				<li><a href="/categories.html">posts</a></li>
+			</ul>
+		</nav>
+	</header>
+
+	<div class="clear"></div>
+	<div id="wrapper">
+
+						<h2 class="title"><a href="/posts/restrict-traefik-access.html">Restricting IP Access to a K3s Cluster with Traefik</a></h2>
+						<p class="meta"><span class="date">Posted Wed 23 April 2025 </span><span>&nbsp; | Category : <a href="/category/tech-tutorial.html">Tech Tutorial</a></span></p>
+						<div style="clear: both;"></div>
+						<div class="entry">
+						 <h2>Motivation</h2>
+<p>In my homelab, I’ve set up a K3s cluster using the default Traefik ingress controller. Some services I run shouldn't be publicly accessible. This article explains how to configure a K3s cluster to restrict access to certain services based on the client’s IP address.</p>
+<h2>Requirements</h2>
+<ul>
+<li>A K3s cluster with a demo whoami app deployed:<br>
+<a href="https://k3s.rocks/first-deploy/">k3s.rocks: First Deploy</a></li>
+<li>K3s with Traefik and Let's Encrypt configured:<br>
+<a href="https://k3s.rocks/https-cert-manager-letsencrypt/">k3s.rocks: HTTPS with Cert-Manager and Let's Encrypt</a></li>
+<li>Working DNS routing.<br>
+  My DNS hostname is accessible both internally and externally. Internal DNS resolves to the cluster’s local IP, while external DNS resolves to its public IP. DNS configuration is outside the scope of this guide.</li>
+</ul>
+<h2>The Problem</h2>
+<p>By default, Traefik does <strong>not</strong> preserve the client’s original IP address. Instead, requests appear to come from the cluster IP of the ingress proxy (e.g., <code>10.42.0.1</code>). This makes it impossible to distinguish between internal and external clients by IP.</p>
+<p>The <code>whoami</code> app helps us diagnose this. It echoes headers like <code>X-Real-IP</code>. In this image, the <code>X-Real-IP</code> is reported as <code>10.42.0.1</code>, Traefik’s internal IP—not the real client’s IP.
+<img alt="Image showing X-Real-IP listed as 10.42.0.1" class="big-img" src="/images/image-whoami-internal.png"></p>
+<h2>Step 1: Preserve the Client’s IP Address</h2>
+<p>To preserve the source IP, we need to update the <code>externalTrafficPolicy</code> setting on the Traefik service. This is a standard Kubernetes Service setting that, when set to <code>Local</code>, preserves the source IP. See the <a href="https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip">Kubernetes documentation</a> for details.</p>
+<p>Apply the setting with:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>svc<span class="w"> </span>-n<span class="w"> </span>kube-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="s1">&#39;{&quot;spec&quot;:{&quot;externalTrafficPolicy&quot;:&quot;Local&quot;}}&#39;</span><span class="w"> </span>traefik
+</code></pre></div>
+
+<p>Once applied, <code>X-Real-IP</code> will show your actual LAN or WAN IP depending on where you're connecting from.</p>
+<p><strong>LAN Client Example</strong>:<br>
+<img alt="" class="big-img" src="/images/image-whoami-lan.png"></p>
+<p><strong>WAN Client Example</strong>:<br>
+<img alt="" class="big-img" src="/images/image-whoami-wan.png"></p>
+<p>Now that we can differentiate clients by IP, we can block unwanted access.</p>
+<h3>Optional: Using a YAML Patch for Persistent Configuration</h3>
+<p>For easier reproducibility, create a patch file called <code>external-traffic-policy-local-patch.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">externalTrafficPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Local</span>
+</code></pre></div>
+
+<p>Then apply it with:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>svc<span class="w"> </span>traefik<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>kube-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--patch-file<span class="w"> </span>external-traffic-policy-local-patch.yaml
+</code></pre></div>
+
+<p>Same effect—just more repeatable than using CLI commands.</p>
+<h2>Step 2: Create Middleware to Restrict IP Access</h2>
+<p>Now we’ll use a <a href="https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/">Traefik middleware</a> to allow only local clients.</p>
+<p>Create the middleware definition in a YAML file, e.g., <code>traefik-local-ipwhitelist.yml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">traefik.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Middleware</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local-ip-allowlist</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ipWhiteList</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">sourceRange</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.1.0/24</span>
+</code></pre></div>
+
+<p>Apply it with:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>traefik-local-ipwhitelist.yml
+</code></pre></div>
+
+<p>Verify with:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>middleware<span class="w"> </span>local-ip-allowlist
+</code></pre></div>
+
+<p>You should see the middleware listed and its rules.</p>
+<h2>Step 3: Add Middleware to Your Ingress</h2>
+<p>We have created a middleware to whitelist local IP ranges, now we must update our Ingresses to use that middleware. We do this by adding an annotation to the Ingress resourcee. Let’s say you have a service like <a href="https://artifacthub.io/packages/helm/nicholaswilde/transmission">Transmission</a> with this ingress:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-tls-ingress</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">spec.ingressClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">traefik</span>
+<span class="w">    </span><span class="nt">cert-manager.io/cluster-issuer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">letsencrypt-prod</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission.[REDACTED].com</span>
+<span class="w">      </span><span class="nt">http</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">paths</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
+<span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Prefix</span>
+<span class="w">            </span><span class="nt">backend</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">service</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-service</span>
+<span class="w">                </span><span class="nt">port</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9091</span>
+<span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-tls</span>
+<span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission.[REDACTED].com</span>
+</code></pre></div>
+
+<p>We configure this ingress by adding the "traefik.ingress.kubernetes.io/router.middlewares" annotation and specifying the "local-ip-allowlist" middleware we just created:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">traefik.ingress.kubernetes.io/router.middlewares</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="w">      </span><span class="no">default-local-ip-allowlist@kubernetescrd</span>
+</code></pre></div>
+
+<p>If you're using multiple middlewares, separate them with commas:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">traefik.ingress.kubernetes.io/router.middlewares</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="w">      </span><span class="no">default-redirect-https@kubernetescrd,</span>
+<span class="w">      </span><span class="no">default-local-ip-allowlist@kubernetescrd</span>
+</code></pre></div>
+
+<blockquote>
+<p>⚠️ Only the <strong>last</strong> <code>router.middlewares</code> key is used if defined multiple times. Combine all middlewares into one annotation.</p>
+</blockquote>
+<h3>Example Ingress With Middleware</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ingress</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-tls-ingress</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">spec.ingressClassName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">traefik</span>
+<span class="w">    </span><span class="nt">cert-manager.io/cluster-issuer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">letsencrypt-prod</span>
+<span class="w">    </span><span class="nt">traefik.ingress.kubernetes.io/router.middlewares</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="w">      </span><span class="no">default-redirect-https@kubernetescrd,</span>
+<span class="w">      </span><span class="no">default-local-ip-allowlist@kubernetescrd</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission.[REDACTED].com</span>
+<span class="w">      </span><span class="nt">http</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">paths</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
+<span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Prefix</span>
+<span class="w">            </span><span class="nt">backend</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">service</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-service</span>
+<span class="w">                </span><span class="nt">port</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9091</span>
+<span class="w">  </span><span class="nt">tls</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission-tls</span>
+<span class="w">      </span><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transmission.[REDACTED].com</span>
+</code></pre></div>
+
+<p>Now just apply the ingress configuration and we are ready to test.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>ingress.yml
+</code></pre></div>
+
+<h3>Results: Access is Now Restricted by IP</h3>
+<p>When I access my Transmission instance from a <strong>local</strong> IP, it loads as expected:
+<img alt="" class="big-img" src="/images/image-transmission-allowed.png">
+When I access it from an <strong>external</strong> IP, I get denied:
+<img alt="" class="big-img" src="/images/image-transmission-forbidden.png"></p>
+<h2>Final Thoughts</h2>
+<p>Restricting services to local IPs adds an easy layer of security to your homelab or dev environment. This method is simple to implement, repeatable, and doesn’t require additional tools or services.</p>
+<h2>Resources</h2>
+<ul>
+<li><a href="https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/">Traefik Middleware Docs: IP Whitelist</a></li>
+<li><a href="https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip">Kubernetes: Preserving Source IP</a></li>
+<li><a href="https://community.traefik.io/t/getting-real-client-ip-x-forwarded-for-in-k3s-multi-server-ha-setup/16095">Community Post on Real Client IP</a></li>
+</ul>
+					 </div>
+				<!-- end #content -->
+
+	</div>
+	<div class="clear"></div>
+	<footer><p>Amor Vincit Omnia | © Dan Steinke</p></footer>
+	<script src="/theme/js/bg.js"></script>
+	<!-- e8df4cf480be03f65f4ed65e4290c23a4e580113  -->
+</body></html>
