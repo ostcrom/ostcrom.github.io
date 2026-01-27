@@ -14,9 +14,9 @@ spec:
     }
   }
   parameters {
-	string(
+    string(
       name: 'GIT_URL',
-      defaultValue: 'github.com/ostcrom/ostcrom.github.io.git',
+      defaultValue: 'https://github.com/ostcrom/ostcrom.github.io.git',
       description: 'URL to Git repo to pull from.'
     )
     string(
@@ -64,7 +64,7 @@ spec:
 		$class: 'GitSCM',
 		branches: [[name: "*/${MAIN_BRANCH}"]],
 		userRemoteConfigs: [[
-		  url: "https://${GIT_URL}",
+		  url: "${GIT_URL}",
 		  credentialsId: 'github-creds'
 		]]
 	  ])
@@ -111,7 +111,8 @@ spec:
               ls -lha
               ls -lha docs/
 
-              git push -f https://${GIT_USER}:${GIT_PASS}@${GIT_URL} ${PUBLISH_BRANCH}
+              GIT_PATH=`echo ${GIT_URL} | awk '{sub("https://", ""); print}'
+              git push -f https://${GIT_USER}:${GIT_PASS}@$GIT_PATH ${PUBLISH_BRANCH}
             '''
           }
         }
