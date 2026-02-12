@@ -245,7 +245,7 @@ spec:
         env:
         # Ollama API endpoint
         - name: OLLAMA_BASE_URL
-          value: "https://ollama.steinke.space"
+          value: "https://ollama.example.com"
         # Optional: Set default model
         - name: DEFAULT_MODELS
           value: "gpt-oss"
